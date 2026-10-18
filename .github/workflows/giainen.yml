@@ -1,0 +1,33 @@
+name: Giải nén zip
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  unzip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Giải nén các file .zip ở thư mục gốc rồi xóa zip
+        run: |
+          shopt -s nullglob
+          files=(*.zip)
+          [ ${#files[@]} -gt 0 ] || { echo "Không có file .zip ở thư mục gốc"; exit 1; }
+          for z in "${files[@]}"; do
+            echo "Giải nén: $z"
+            unzip -o -q "$z"
+            rm -f "$z"
+          done
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && { echo "Không có thay đổi"; exit 0; }
+          git commit -m "Giải nén zip cập nhật"
+          git push
