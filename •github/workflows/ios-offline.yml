@@ -1,0 +1,40 @@
+name: Build iOS offline IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Gom file game (chế độ offline)
+        run: bash ios/prepare_game.sh
+
+      - name: Cài XcodeGen
+        run: brew install xcodegen
+
+      - name: Tạo project Xcode
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Build (không ký)
+        working-directory: ios
+        run: |
+          xcodebuild -project VoLamIdle.xcodeproj -scheme VoLamIdle \
+            -configuration Release -sdk iphoneos -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Đóng gói IPA
+        run: |
+          APP="ios/build/Build/Products/Release-iphoneos/VoLamIdle.app"
+          mkdir -p Payload && cp -R "$APP" Payload/
+          zip -qry VoLamIdle.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VoLamIdle-ipa
+          path: VoLamIdle.ipa
+          compression-level: 0
